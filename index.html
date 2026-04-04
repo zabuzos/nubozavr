@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>⚔ Міні-гра – Нубозавр</title>
+<title>Міні-гра – міста та юніти</title>
 <style>
 body { font-family: Arial; padding:10px; background:#f5f5f5; }
 .card { background:white; padding:10px; margin-bottom:10px; border-radius:10px; }
@@ -103,6 +103,7 @@ input[type=number], input[type=text]{width:80px;}
 💰 Ціна: <input type="number" id="newUnitPrice"><br>
 ⚔️ АТК: <input type="number" id="newUnitAtk"><br>
 🛡 ОЗ: <input type="number" id="newUnitDef"><br>
+🏃‍♂️ Швидкість: <input type="number" id="newUnitSpeed"><br>
 <button onclick="addNewUnit()">Створити</button>
 </div>
 
@@ -117,14 +118,14 @@ input[type=number], input[type=text]{width:80px;}
 // ---------- Налаштування ----------
 let defaultState = { balance: 500000, cities: [], army: {} };
 let defaultUnits = [
-  {name:"Вівцевоз", price:60000, atk:7, def:34},
-  {name:"Каракалокрад", price:85000, atk:9, def:38},
-  {name:"Вівці штурмовики", price:75000, atk:6, def:42},
-  {name:"Капі штурмовики", price:110000, atk:8, def:50},
-  {name:"Каракали панцергренадири", price:100000, atk:10, def:35},
-  {name:"КатзеВоз", price:150000, atk:8, def:50},
-  {name:"Бобер стрілок", price:75000, atk:6, def:42},
-  {name:"Бобер мінометник", price:120000, atk:12, def:50}
+  {name:"Вівцевоз", price:60000, atk:7, def:34, speed:12},
+  {name:"Каракалокрад", price:85000, atk:9, def:38, speed:13},
+  {name:"Вівці штурмовики", price:75000, atk:6, def:42, speed:8},
+  {name:"Капі штурмовики", price:110000, atk:8, def:50, speed:7},
+  {name:"Каракали панцергренадири", price:100000, atk:10, def:35, speed:9},
+  {name:"КатзеВоз", price:150000, atk:8, def:50, speed:23},
+  {name:"Бобер стрілок", price:75000, atk:6, def:42, speed:8},
+  {name:"Бобер мінометник", price:120000, atk:12, def:50, speed:6}
 ];
 
 // базові юніти
@@ -174,7 +175,7 @@ function render(){
   // --- Магазин юнітів ---
   let shopHTML="";
   units.forEach(u=>{
-    shopHTML+=`<div class="unit"><b>${u.name}</b> 💰${formatMoney(u.price)} ⚔️${u.atk} 🛡${u.def} 
+    shopHTML+=`<div class="unit"><b>${u.name}</b> 💰${formatMoney(u.price)} ⚔️${u.atk} 🛡${u.def} 🏃‍♂️${u.speed}км/хід
       <button onclick="buy('${u.name}')">Купити</button></div>`;
   });
   document.getElementById("shop").innerHTML=shopHTML;
@@ -193,7 +194,7 @@ function render(){
       <div class="left">
         <button class="plus" onclick="adminAddUnit('${u.name}',1)">➕</button>
         <button class="minus" onclick="adminAddUnit('${u.name}',-1)">−</button>
-        ${u.name} (${state.army[u.name]})
+        ${u.name} (${state.army[u.name]}) ⚔️${u.atk} 🛡${u.def} 🏃‍♂️${u.speed}км/хід
       </div>
       <div class="right">
         <button class="edit" onclick="editUnitPrompt('${u.name}')">✏️</button>
@@ -274,6 +275,8 @@ function editUnitPrompt(name){
   if(!isNaN(newAtk)) u.atk=newAtk;
   let newDef=parseInt(prompt("🛡 ОЗ:",u.def));
   if(!isNaN(newDef)) u.def=newDef;
+  let newSpeed=parseInt(prompt("🏃‍♂️ Швидкість (км/хід):",u.speed));
+  if(!isNaN(newSpeed)) u.speed=newSpeed;
   render();
 }
 
@@ -291,7 +294,8 @@ function addNewUnit(){
   let price=parseInt(document.getElementById("newUnitPrice").value)||0;
   let atk=parseInt(document.getElementById("newUnitAtk").value)||0;
   let def=parseInt(document.getElementById("newUnitDef").value)||0;
-  if(name && price>0){ units.push({name,price,atk,def}); state.army[name]=0; document.getElementById("newUnitForm").style.display='none'; render(); }
+  let speed=parseInt(document.getElementById("newUnitSpeed").value)||0;
+  if(name && price>0){ units.push({name,price,atk,def,speed}); state.army[name]=0; document.getElementById("newUnitForm").style.display='none'; render(); }
 }
 
 // ---------- Зберегти базові налаштування ----------
