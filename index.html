@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Міні-гра – міста та юніти</title>
 <style>
+  .adminUnit {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+.adminUnit .left { display: flex; gap: 5px; }
+.adminUnit .right { display: flex; gap: 5px; }
 body { font-family: Arial; padding:10px; background:#f5f5f5; }
 .card { background:white; padding:10px; margin-bottom:10px; border-radius:10px; }
 button { padding:6px 10px; margin:3px; border-radius:6px; border:none; background:#4CAF50; color:white; }
@@ -152,13 +160,21 @@ function render(){
   document.getElementById("army").innerHTML=armyHTML;
 
   // --- Адмін ---
-  let adminHTML="";
-  units.forEach(u=>{
-    adminHTML+=`${u.name} (${state.army[u.name]}) 
-  <button onclick="editUnitPrompt('${u.name}')">✏️</button>
-  <button onclick="deleteUnit('${u.name}')">🗑️</button><br>`;
-  });
-  document.getElementById("adminUnits").innerHTML=adminHTML;
+ let adminHTML="";
+units.forEach(u=>{
+  adminHTML+=`<div class="adminUnit">
+    <div class="left">
+      <button onclick="adminAddUnit('${u.name}',1)">➕</button>
+      <button onclick="adminAddUnit('${u.name}',-1)">−</button>
+      ${u.name} (${state.army[u.name]})
+    </div>
+    <div class="right">
+      <button onclick="editUnitPrompt('${u.name}')">✏️</button>
+      <button onclick="deleteUnit('${u.name}')">🗑️</button>
+    </div>
+  </div>`;
+});
+document.getElementById("adminUnits").innerHTML=adminHTML;
 
   saveGame();
 }
@@ -241,6 +257,12 @@ function editUnitPrompt(name){
     delete state.army[name];                    // прибираємо з армії
     render();                                   // оновлюємо UI
   }
+}
+
+  function adminAddUnit(name, delta){
+  state.army[name] = (state.army[name] || 0) + delta;
+  if(state.army[name] < 0) state.army[name] = 0;
+  render();
 }
 
 function showNewUnitForm(){document.getElementById("newUnitForm").style.display='block';}
