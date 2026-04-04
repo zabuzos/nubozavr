@@ -154,7 +154,9 @@ function render(){
   // --- Адмін ---
   let adminHTML="";
   units.forEach(u=>{
-    adminHTML+=`${u.name} (${state.army[u.name]}) <button onclick="editUnitPrompt('${u.name}')">✏️</button><br>`;
+    adminHTML+=`${u.name} (${state.army[u.name]}) 
+  <button onclick="editUnitPrompt('${u.name}')">✏️</button>
+  <button onclick="deleteUnit('${u.name}')">🗑️</button><br>`;
   });
   document.getElementById("adminUnits").innerHTML=adminHTML;
 
@@ -231,6 +233,14 @@ function editUnitPrompt(name){
   let newDef=parseInt(prompt("🛡 ОЗ:",u.def));
   if(!isNaN(newDef)) u.def=newDef;
   render();
+}
+
+  function deleteUnit(name){
+  if(confirm(`Видалити юніта "${name}"?`)){
+    units = units.filter(u => u.name !== name); // прибираємо з масиву юнітів
+    delete state.army[name];                    // прибираємо з армії
+    render();                                   // оновлюємо UI
+  }
 }
 
 function showNewUnitForm(){document.getElementById("newUnitForm").style.display='block';}
