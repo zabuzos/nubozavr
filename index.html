@@ -3,48 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Міні-гра – міста та юніти</title>
+<title>Міні-гра з Firebase</title>
 <style>
 body { font-family: Arial; padding:10px; background:#f5f5f5; }
 .card { background:white; padding:10px; margin-bottom:10px; border-radius:10px; }
 button { padding:6px 10px; margin:3px; border-radius:6px; border:none; background:#4CAF50; color:white; cursor:pointer; }
 button.minus { background:#f44336; }
 .top { font-size:20px; font-weight:bold; }
-.unit { margin-bottom:8px; }
+.unitCard { background:#fafafa; padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid #ddd; }
 .tabs button { background:#ddd; color:black; margin-right:5px; }
 .activeTab { background:#4CAF50 !important; color:white !important; }
 input[type=number], input[type=text]{width:80px;}
-
-/* --- Адмінські юніти --- */
-.adminUnit {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 4px 0;
-  border-bottom: 1px solid #ccc;
-}
-
-.adminUnit .left {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.adminUnit .right {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.adminUnit button {
-  padding: 4px 6px;
-  border-radius: 5px;
-  border: none;
-  cursor: pointer;
-}
-
-.adminUnit button:hover { opacity: 0.8; }
-
+.adminUnit { display:flex; justify-content:space-between; align-items:center; padding:4px 0; border-bottom:1px solid #ccc; }
+.adminUnit .left { display:flex; align-items:center; gap:5px; }
+.adminUnit .right { display:flex; align-items:center; gap:5px; }
+.adminUnit button { padding:4px 6px; border-radius:5px; border:none; cursor:pointer; }
+.adminUnit button:hover { opacity:0.8; }
 .adminUnit button.minus { background:#f44336; color:white; }
 .adminUnit button.plus { background:#4CAF50; color:white; }
 .adminUnit button.edit { background:#2196F3; color:white; }
@@ -54,6 +28,7 @@ input[type=number], input[type=text]{width:80px;}
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+
 </head>
 <body>
 
@@ -64,70 +39,71 @@ input[type=number], input[type=text]{width:80px;}
 
 <!-- ГРА -->
 <div id="gameTab">
-  <div class="card top">
-    Баланс: <span id="balance"></span> 💰
-  </div>
+<div class="card top">
+Баланс: <span id="balance"></span> 💰
+</div>
 
-  <div class="card">
-    <h3>🏙 Міста</h3>
-    <div id="cityBlock"></div>
-  </div>
+<div class="card">
+<h3>🏙 Міста</h3>
+<div id="cityBlock"></div>
+</div>
 
-  <div class="card">
-    <h3>🛒 Купити юнітів</h3>
-    <div id="shop"></div>
-  </div>
+<div class="card">
+<h3>🛒 Купити юнітів</h3>
+<div id="shop"></div>
+</div>
 
-  <div class="card">
-    <h3>🎒 Твої юніти</h3>
-    <div id="army"></div>
-  </div>
+<div class="card">
+<h3>🎒 Твої юніти</h3>
+<div id="army"></div>
+</div>
 
-  <div class="card">
-    <button onclick="endTurn()">Закінчити хід</button>
-    <div id="eventLog"></div>
-  </div>
+<div class="card">
+<button onclick="endTurn()">Закінчити хід</button>
+<div id="eventLog"></div>
+</div>
 </div>
 
 <!-- АДМІН -->
 <div id="adminTab" style="display:none;">
-  <div class="card">
-    <h3>👑 Адмін панель</h3>
-    💰 Баланс: 
-    <button onclick="adminChangeBalance(-1)">-</button>
-    <input type="number" id="adminBalanceInput" value="50000">
-    <button onclick="adminChangeBalance(1)">+</button>
-    <br><br>
+<div class="card">
+<h3>👑 Адмін панель</h3>
+💰 Баланс: 
+<button onclick="adminChangeBalance(-1)">-</button>
+<input type="number" id="adminBalanceInput" value="50000">
+<button onclick="adminChangeBalance(1)">+</button>
+<br><br>
 
-    🎒 Юніти (кількість):<br>
-    <div id="adminUnits"></div>
-    <button onclick="showNewUnitForm()">➕ Новий юніт</button>
-    <div id="newUnitForm" style="display:none;">
-      Назва: <input type="text" id="newUnitName"><br>
-      💰 Ціна: <input type="number" id="newUnitPrice"><br>
-      ⚔️ АТК: <input type="number" id="newUnitAtk"><br>
-      🛡 ОЗ: <input type="number" id="newUnitDef"><br>
-      🏃‍♂️ Швидкість: <input type="number" id="newUnitSpeed"><br>
-      <button onclick="addNewUnit()">Створити</button>
-    </div>
+🎒 Юніти (кількість):<br>
+<div id="adminUnits"></div>
+<button onclick="showNewUnitForm()">➕ Новий юніт</button>
+<div id="newUnitForm" style="display:none;">
+Назва: <input type="text" id="newUnitName"><br>
+💰 Ціна: <input type="number" id="newUnitPrice"><br>
+⚔️ АТК: <input type="number" id="newUnitAtk"><br>
+🛡 ОЗ: <input type="number" id="newUnitDef"><br>
+🏃‍♂️ Швидкість: <input type="number" id="newUnitSpeed"><br>
+<button onclick="addNewUnit()">Створити</button>
+</div>
 
-    <br>
-    <button onclick="saveBaseUnits()">💾 Зберегти базові налаштування</button>
-    <br><br>
-    <button onclick="resetGame()">Нова гра</button>
-  </div>
+<br>
+<button onclick="saveBaseUnits()">💾 Зберегти базові налаштування</button>
+<br><br>
+<button onclick="resetGame()">Нова гра</button>
+</div>
 </div>
 
 <script>
 // ---------- Firebase ----------
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT.firebaseio.com",
-  projectId: "YOUR_PROJECT"
+  apiKey: "ТУТ_ВСТАВ_API_KEY",
+  authDomain: "ТУТ_ВСТАВ_AuthDomain",
+  databaseURL: "https://nubozavr-cd903-default-rtdb.firebaseio.com",
+  projectId: "nubozavr-cd903"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
+const gameRef = db.ref("gameState");
 
 // ---------- Дані ----------
 let defaultState = { balance: 500000, cities: [], army: {} };
@@ -141,25 +117,41 @@ let defaultUnits = [
   {name:"Бобер стрілок", price:75000, atk:6, def:42, speed:8},
   {name:"Бобер мінометник", price:120000, atk:12, def:50, speed:6}
 ];
-
-let units = JSON.parse(JSON.stringify(defaultUnits));
+let baseUnits = JSON.parse(JSON.stringify(defaultUnits));
+let units = JSON.parse(JSON.stringify(baseUnits));
 const allCities = [
   {name:"🏘 Селище", price:30000, income:[5000,10000,15000]},
   {name:"🏙 Місто", price:50000, income:[10000,20000,30000]},
   {name:"🏛 Столиця", price:150000, income:[20000,40000,60000]}
 ];
+let state = null;
 
-let state = loadGame();
-units.forEach(u => { if(!state.army[u.name]) state.army[u.name]=0; });
+// ---------- Завантаження стану ----------
+gameRef.on("value", snap => {
+  if(snap.exists()){
+    state = snap.val();
+    // Якщо юніта немає у стані, додати
+    units.forEach(u=>{ if(state.army[u.name]===undefined) state.army[u.name]=0; });
+  } else {
+    state = JSON.parse(JSON.stringify(defaultState));
+    units.forEach(u=>state.army[u.name]=0);
+    gameRef.set(state);
+  }
+  render();
+});
 
-// ---------- UTIL ----------
+// ---------- Зберегти стан ----------
+function saveGame(){ gameRef.set(state); }
+
+// ---------- UI ----------
 function formatMoney(n){ return (n/1000)+"к"; }
-function saveGame(){ localStorage.setItem("gameSave", JSON.stringify(state)); }
-function loadGame(){ let save=localStorage.getItem("gameSave"); return save?JSON.parse(save):JSON.parse(JSON.stringify(defaultState)); }
 
-// ---------- Рендер міста ---
-function renderCities(){
-  let cityHTML="";
+function render(){
+  if(!state) return;
+  document.getElementById("balance").innerText=formatMoney(state.balance);
+
+  // Міста
+  let cityHTML = "";
   if(state.cities.length===0) cityHTML="Немає міст<br><br>";
   state.cities.forEach((c,i)=>{
     let income=c.income[c.level-1];
@@ -167,45 +159,37 @@ function renderCities(){
     cityHTML+=`<b>${c.name}</b> ${stars} Рівень: ${c.level} 💰 Дохід: ${formatMoney(income)} / хід
       ${c.level<c.income.length?'<button onclick="upgradeCity('+i+')">Покращити (50к)</button>':''}<br>`;
   });
-
   cityHTML+="<br><b>Купити нове місто:</b><br>";
   allCities.forEach((c,i)=>{
     cityHTML+=`${c.name} 💰${formatMoney(c.price)} <button onclick="buyCity(${i})">Купити</button><br>`;
   });
-  document.getElementById("cityBlock").innerHTML=cityHTML;
-}
+  document.getElementById("cityBlock").innerHTML = cityHTML;
 
-// ---------- Рендер магазину ---
-function renderShop(){
-  let shopHTML="";
+  // Магазин юнітів
+  let shopHTML = "";
   units.forEach(u=>{
-    shopHTML+=`<div class="unit" style="margin-bottom:12px; border:1px solid #ddd; border-radius:8px; padding:8px;">
-      <b>${u.name}</b><br>
+    shopHTML+=`<div class="unitCard"><b>${u.name}</b><br>
+      💰 ${formatMoney(u.price)}<br>
       ⚔️ ${u.atk} | 🛡 ${u.def} | 🏃‍♂️ ${u.speed} км/хід<br>
-      <button onclick="buy('${u.name}')">Купити 💰${formatMoney(u.price)}</button>
-    </div>`;
+      <button onclick="buy('${u.name}')">Купити</button></div>`;
   });
-  document.getElementById("shop").innerHTML=shopHTML;
-}
+  document.getElementById("shop").innerHTML = shopHTML;
 
-// ---------- Рендер армії ---
-function renderArmy(){
-  let armyHTML="";
+  // Армія
+  let armyHTML = "";
   units.forEach(u=>{
     armyHTML+=`${u.name}: ${state.army[u.name]} <button class="minus" onclick="sell('${u.name}')">-</button><br>`;
   });
-  document.getElementById("army").innerHTML=armyHTML;
-}
+  document.getElementById("army").innerHTML = armyHTML;
 
-// ---------- Рендер адмінки ---
-function renderAdmin(){
-  let adminHTML="";
+  // Адмін
+  let adminHTML = "";
   units.forEach(u=>{
     adminHTML+=`<div class="adminUnit">
       <div class="left">
         <button class="plus" onclick="adminAddUnit('${u.name}',1)">➕</button>
         <button class="minus" onclick="adminAddUnit('${u.name}',-1)">−</button>
-        ${u.name} (${state.army[u.name]}) ⚔️${u.atk} 🛡${u.def} 🏃‍♂️${u.speed}км/хід
+        ${u.name} (${state.army[u.name]}) ⚔️${u.atk} 🛡${u.def} 🏃‍♂️${u.speed} км/хід
       </div>
       <div class="right">
         <button class="edit" onclick="editUnitPrompt('${u.name}')">✏️</button>
@@ -213,80 +197,51 @@ function renderAdmin(){
       </div>
     </div>`;
   });
-  document.getElementById("adminUnits").innerHTML=adminHTML;
+  document.getElementById("adminUnits").innerHTML = adminHTML;
 }
 
-// ---------- Рендер всього ---
-function render(){ 
-  document.getElementById("balance").innerText=formatMoney(state.balance);
-  renderCities();
-  renderShop();
-  renderArmy();
-  renderAdmin();
-  saveGame();
-}
-
-// ---------- Гра ---
+// ---------- Гра ----------
 function buy(name){
-  let u=units.find(x=>x.name===name);
-  if(state.balance>=u.price){ state.balance-=u.price; state.army[name]++; render(); }
+  let u = units.find(x=>x.name===name);
+  if(state.balance>=u.price){ state.balance-=u.price; state.army[name]++; saveGame(); render(); }
   else alert("Не вистачає грошей");
 }
 function sell(name){
-  let u=units.find(x=>x.name===name);
-  if(state.army[name]>0){ state.army[name]--; state.balance+=u.price*0.5; render(); }
+  let u = units.find(x=>x.name===name);
+  if(state.army[name]>0){ state.army[name]--; state.balance+=u.price*0.5; saveGame(); render(); }
 }
-function buyCity(index){
-  let c=allCities[index];
-  if(state.balance>=c.price){ state.balance-=c.price; state.cities.push({name:c.name, level:1, income:c.income}); render(); }
+function buyCity(i){
+  let c=allCities[i];
+  if(state.balance>=c.price){ state.balance-=c.price; state.cities.push({name:c.name, level:1, income:c.income}); saveGame(); render(); }
   else alert("Не вистачає грошей");
 }
-function upgradeCity(index){
-  let c=state.cities[index];
-  if(c.level<c.income.length && state.balance>=50000){ state.balance-=50000; c.level++; render(); }
+function upgradeCity(i){
+  let c=state.cities[i];
+  if(c.level<c.income.length && state.balance>=50000){ state.balance-=50000; c.level++; saveGame(); render(); }
   else alert("Не вистачає грошей");
 }
 function endTurn(){
   let log="";
   state.cities.forEach(c=>{ let income=c.income[c.level-1]; state.balance+=income; log+="💰 Дохід +" + formatMoney(income) + "<br>"; });
-  document.getElementById("eventLog").innerHTML=log;
-  render();
+  document.getElementById("eventLog").innerHTML = log;
+  saveGame(); render();
 }
 
-// ---------- Адмінка ---
+// ---------- Адмін ----------
 function adminChangeBalance(dir){
-  let val=parseInt(document.getElementById("adminBalanceInput").value)||0;
-  state.balance+=val*dir;
-  render();
+  let val = parseInt(document.getElementById("adminBalanceInput").value)||0;
+  state.balance += val*dir;
+  saveGame(); render();
 }
-function adminAddUnit(name, delta){
-  state.army[name]=(state.army[name]||0)+delta;
-  if(state.army[name]<0) state.army[name]=0;
-  render();
-}
-function editUnitPrompt(name){
-  let u=units.find(x=>x.name===name);
-  let newName=prompt("Назва юніта:",u.name); if(newName) u.name=newName;
-  let newPrice=parseInt(prompt("💰 Ціна:",u.price)); if(!isNaN(newPrice)) u.price=newPrice;
-  let newAtk=parseInt(prompt("⚔️ АТК:",u.atk)); if(!isNaN(newAtk)) u.atk=newAtk;
-  let newDef=parseInt(prompt("🛡 ОЗ:",u.def)); if(!isNaN(newDef)) u.def=newDef;
-  let newSpeed=parseInt(prompt("🏃‍♂️ Швидкість (км/хід):",u.speed)); if(!isNaN(newSpeed)) u.speed=newSpeed;
-  render();
-}
-function deleteUnit(name){ if(confirm("Видалити юніта "+name+"?")){ units=units.filter(u=>u.name!==name); delete state.army[name]; render(); } }
-function showNewUnitForm(){document.getElementById("newUnitForm").style.display='block';}
-function addNewUnit(){
-  let name=document.getElementById("newUnitName").value;
-  let price=parseInt(document.getElementById("newUnitPrice").value)||0;
-  let atk=parseInt(document.getElementById("newUnitAtk").value)||0;
-  let def=parseInt(document.getElementById("newUnitDef").value)||0;
-  let speed=parseInt(document.getElementById("newUnitSpeed").value)||0;
-  if(name && price>0){ units.push({name,price,atk,def,speed}); state.army[name]=0; document.getElementById("newUnitForm").style.display='none'; render(); }
-}
-function saveBaseUnits(){ localStorage.setItem("baseUnits", JSON.stringify(units)); alert("Базові юніти збережено!"); }
-function resetGame(){ if(confirm("Справді почати нову гру? Все буде обнулено.")){ localStorage.removeItem("gameSave"); state=JSON.parse(JSON.stringify(defaultState)); units=JSON.parse(JSON.stringify(defaultUnits)); units.forEach(u=>state.army[u.name]=0); render(); } }
+function adminAddUnit(name, delta){ state.army[name] = (state.army[name]||0)+delta; if(state.army[name]<0) state.army[name]=0; saveGame(); render(); }
+function editUnitPrompt(name){ let u=units.find(x=>x.name===name); let newName=prompt("Назва:",u.name); if(newName) u.name=newName; render(); }
+function deleteUnit(name){ if(confirm("Видалити "+name+"?")){ units=units.filter(u=>u.name!==name); delete state.army[name]; saveGame(); render(); } }
+function showNewUnitForm(){ document.getElementById("newUnitForm").style.display='block'; }
+function addNewUnit(){ let name=document.getElementById("newUnitName").value; if(!name) return; let price=parseInt(document.getElementById("newUnitPrice").value)||0; let atk=parseInt(document.getElementById("newUnitAtk").value)||0; let def=parseInt(document.getElementById("newUnitDef").value)||0; let speed=parseInt(document.getElementById("newUnitSpeed").value)||0; units.push({name,price,atk,def,speed}); state.army[name]=0; document.getElementById("newUnitForm").style.display='none'; saveGame(); render(); }
+function saveBaseUnits(){ baseUnits=JSON.parse(JSON.stringify(units)); alert("Базові юніти збережено!"); }
+function resetGame(){ if(confirm("Нова гра?")){ state=JSON.parse(JSON.stringify(defaultState)); units=JSON.parse(JSON.stringify(baseUnits)); units.forEach(u=>state.army[u.name]=0); saveGame(); render(); } }
 
-// ---------- Таби ---
+// ---------- Таби ----------
 function switchTab(tab){
   document.getElementById("gameTab").style.display=tab==="game"?"block":"none";
   document.getElementById("adminTab").style.display=tab==="admin"?"block":"none";
@@ -294,10 +249,7 @@ function switchTab(tab){
   document.getElementById("tabAdmin").classList.toggle("activeTab",tab==="admin");
 }
 
-// ---------- Старт ---
 switchTab("game");
-render();
 </script>
-
 </body>
 </html>
