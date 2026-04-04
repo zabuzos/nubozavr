@@ -39,7 +39,7 @@ button.minus { background:#f44336; }
 <div id="gameTab">
 
 <div class="card">
-💰 Баланс: <b><span id="balance"></span></b>
+💰 Баланс: <b><span id="balance">0к</span></b>
 </div>
 
 <div class="card">
@@ -84,6 +84,7 @@ button.minus { background:#f44336; }
 const firebaseConfig = {
   apiKey: "AIzaSyATVi62zhasVApJzdq-qw_nE4_sms_S6l8",
   authDomain: "nubozavr-cd903.firebaseapp.com",
+  databaseURL: "https://nubozavr-cd903-default-rtdb.firebaseio.com/",
   projectId: "nubozavr-cd903"
 };
 firebase.initializeApp(firebaseConfig);
@@ -121,7 +122,7 @@ function saveGame(){
 }
 
 function loadGame(){
-  db.ref("game/state").on("value", snap=>{
+  db.ref("game/state").once("value").then(snap => {
     if(snap.exists()){
       state = snap.val();
     } else {
@@ -129,15 +130,19 @@ function loadGame(){
       saveGame();
     }
 
-    if(!state.cities) state.cities=[];
-    if(!state.army) state.army={};
+    if(!state.cities) state.cities = [];
+    if(!state.army) state.army = {};
 
     units.forEach(u=>{
-      if(state.army[u.name]===undefined){
-        state.army[u.name]=0;
+      if(state.army[u.name] === undefined){
+        state.army[u.name] = 0;
       }
     });
 
+    render();
+  }).catch(err=>{
+    console.error("Firebase error:", err);
+    state = JSON.parse(JSON.stringify(defaultState));
     render();
   });
 }
@@ -146,29 +151,27 @@ function loadGame(){
 function formatMoney(n){ return (n/1000)+"к"; }
 
 function render(){
-  document.getElementById("balance").innerText=formatMoney(state.balance);
+  if(!state) return;
+  document.getElementById("balance").innerText = state.balance!==undefined ? formatMoney(state.balance) : "0к";
 
   // Міста
-  let cityHTML="";
+  let cityHTML = "";
   if(state.cities.length===0){
     cityHTML="Немає міст<br><br>";
   }
-
   state.cities.forEach((c,i)=>{
     let income=c.income[c.level-1];
     cityHTML+=`${c.name} lvl ${c.level} 💰${formatMoney(income)}
     <button onclick="upgradeCity(${i})">↑</button><br>`;
   });
-
   allCities.forEach((c,i)=>{
     cityHTML+=`${c.name} 💰${formatMoney(c.price)}
     <button onclick="buyCity(${i})">Купити</button><br>`;
   });
-
-  document.getElementById("cityBlock").innerHTML=cityHTML;
+  document.getElementById("cityBlock").innerHTML = cityHTML;
 
   // Магазин
-  let shopHTML="";
+  let shopHTML = "";
   units.forEach(u=>{
     shopHTML+=`
     <div class="unitCard">
@@ -179,16 +182,15 @@ function render(){
       <button onclick="buy('${u.name}')">Купити</button>
     </div>`;
   });
-  document.getElementById("shop").innerHTML=shopHTML;
+  document.getElementById("shop").innerHTML = shopHTML;
 
   // Армія
   let armyHTML="";
   units.forEach(u=>{
-    let count=state.army[u.name]||0;
-    armyHTML+=`${u.name}: ${count}
-    <button class="minus" onclick="sell('${u.name}')">-</button><br>`;
+    let count = state.army[u.name]||0;
+    armyHTML+=`${u.name}: ${count} <button class="minus" onclick="sell('${u.name}')">-</button><br>`;
   });
-  document.getElementById("army").innerHTML=armyHTML;
+  document.getElementById("army").innerHTML = armyHTML;
 
   saveGame();
 }
@@ -251,8 +253,8 @@ function resetGame(){
 
 // ---------- Tabs ----------
 function switchTab(tab){
-  document.getElementById("gameTab").style.display=tab==="game"?"block":"none";
-  document.getElementById("adminTab").style.display=tab==="admin"?"block":"none";
+  document.getElementById("gameTab").style.display = tab==="game"?"block":"none";
+  document.getElementById("adminTab").style.display = tab==="admin"?"block":"none";
 }
 
 // ---------- Start ----------
