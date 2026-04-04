@@ -8,8 +8,11 @@
 <style>
 body { font-family: Arial; padding:10px; background:#f5f5f5; }
 .card { background:white; padding:10px; margin-bottom:10px; border-radius:10px; }
-button { padding:6px 10px; margin-top:5px; border:none; border-radius:6px; background:#4CAF50; color:white; cursor:pointer; }
+button { padding:6px 10px; margin:3px; border-radius:6px; border:none; background:#4CAF50; color:white; cursor:pointer; }
 button.minus { background:#f44336; }
+
+.tabs button { background:#ddd; color:black; }
+.activeTab { background:#4CAF50 !important; color:white !important; }
 
 .unitCard {
   background:#fafafa;
@@ -27,7 +30,17 @@ button.minus { background:#f44336; }
 </head>
 <body>
 
-<h2>💰 Баланс: <span id="balance"></span></h2>
+<div class="tabs">
+  <button onclick="switchTab('game')" id="tabGame">🎮 Гра</button>
+  <button onclick="switchTab('admin')" id="tabAdmin">👑 Адмін</button>
+</div>
+
+<!-- GAME -->
+<div id="gameTab">
+
+<div class="card">
+💰 Баланс: <b><span id="balance"></span></b>
+</div>
 
 <div class="card">
 <h3>🏙 Міста</h3>
@@ -42,6 +55,28 @@ button.minus { background:#f44336; }
 <div class="card">
 <h3>🎒 Армія</h3>
 <div id="army"></div>
+</div>
+
+<div class="card">
+<button onclick="endTurn()">Закінчити хід</button>
+</div>
+
+</div>
+
+<!-- ADMIN -->
+<div id="adminTab" style="display:none;">
+<div class="card">
+<h3>👑 Адмін панель</h3>
+
+💰 Баланс:
+<button onclick="changeBalance(-10000)">-</button>
+<button onclick="changeBalance(10000)">+</button>
+
+<br><br>
+
+<button onclick="resetGame()">Нова гра</button>
+
+</div>
 </div>
 
 <script>
@@ -80,7 +115,7 @@ const allCities = [
 
 let state = null;
 
-// ---------- Firebase sync ----------
+// ---------- Firebase ----------
 function saveGame(){
   db.ref("game/state").set(state);
 }
@@ -94,13 +129,12 @@ function loadGame(){
       saveGame();
     }
 
-    // FIX
-    if(!state.cities) state.cities = [];
-    if(!state.army) state.army = {};
+    if(!state.cities) state.cities=[];
+    if(!state.army) state.army={};
 
     units.forEach(u=>{
-      if(state.army[u.name] === undefined){
-        state.army[u.name] = 0;
+      if(state.army[u.name]===undefined){
+        state.army[u.name]=0;
       }
     });
 
@@ -112,12 +146,12 @@ function loadGame(){
 function formatMoney(n){ return (n/1000)+"к"; }
 
 function render(){
-  document.getElementById("balance").innerText = formatMoney(state.balance);
+  document.getElementById("balance").innerText=formatMoney(state.balance);
 
-  // --- Міста ---
+  // Міста
   let cityHTML="";
-  if(state.cities.length === 0){
-    cityHTML = "Немає міст<br><br>";
+  if(state.cities.length===0){
+    cityHTML="Немає міст<br><br>";
   }
 
   state.cities.forEach((c,i)=>{
@@ -131,9 +165,9 @@ function render(){
     <button onclick="buyCity(${i})">Купити</button><br>`;
   });
 
-  document.getElementById("cityBlock").innerHTML = cityHTML;
+  document.getElementById("cityBlock").innerHTML=cityHTML;
 
-  // --- Магазин ---
+  // Магазин
   let shopHTML="";
   units.forEach(u=>{
     shopHTML+=`
@@ -145,16 +179,16 @@ function render(){
       <button onclick="buy('${u.name}')">Купити</button>
     </div>`;
   });
-  document.getElementById("shop").innerHTML = shopHTML;
+  document.getElementById("shop").innerHTML=shopHTML;
 
-  // --- Армія ---
+  // Армія
   let armyHTML="";
   units.forEach(u=>{
     let count=state.army[u.name]||0;
     armyHTML+=`${u.name}: ${count}
     <button class="minus" onclick="sell('${u.name}')">-</button><br>`;
   });
-  document.getElementById("army").innerHTML = armyHTML;
+  document.getElementById("army").innerHTML=armyHTML;
 
   saveGame();
 }
@@ -196,7 +230,33 @@ function upgradeCity(i){
   }
 }
 
-// ---------- START ----------
+function endTurn(){
+  state.cities.forEach(c=>{
+    state.balance+=c.income[c.level-1];
+  });
+  render();
+}
+
+// ---------- Адмін ----------
+function changeBalance(val){
+  state.balance+=val;
+  render();
+}
+
+function resetGame(){
+  state = JSON.parse(JSON.stringify(defaultState));
+  saveGame();
+  render();
+}
+
+// ---------- Tabs ----------
+function switchTab(tab){
+  document.getElementById("gameTab").style.display=tab==="game"?"block":"none";
+  document.getElementById("adminTab").style.display=tab==="admin"?"block":"none";
+}
+
+// ---------- Start ----------
+switchTab("game");
 loadGame();
 </script>
 
