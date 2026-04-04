@@ -99,9 +99,9 @@ let defaultUnits = [
 ];
 
 const allCities = [
-  {name:"Селище", price:30000, income:[5000,10000,15000]},
-  {name:"Місто", price:50000, income:[10000,20000,30000]},
-  {name:"Столиця", price:150000, income:[20000,40000,60000]}
+  {name:"🏘 Селище", price:30000, income:[5000,10000,15000]},
+  {name:"🏙 Місто", price:50000, income:[10000,20000,30000]},
+  {name:"🏛 Столиця", price:150000, income:[20000,40000,60000]}
 ];
 
 // ---------- Завантаження/збереження ----------
@@ -131,17 +131,19 @@ function render(){
   document.getElementById("balance").innerText=formatMoney(state.balance);
 
   // --- Міста ---
-  let cityHTML="";
-  if(state.cities.length===0) cityHTML="Немає міст<br><br>";
-  state.cities.forEach((c,i)=>{
-    let income=c.income[c.level-1];
-    cityHTML+=`<b>${c.name}</b> Рівень: ${c.level} Дохід: ${formatMoney(income)} / хід
-      ${c.level<c.income.length?'<button onclick="upgradeCity('+i+')">Покращити (50к)</button>':''}<br>`;
-  });
-  cityHTML+="<br><b>Купити нове місто:</b><br>";
-  allCities.forEach((c,i)=>{
-    cityHTML+=`${c.name} 💰 ${formatMoney(c.price)} <button onclick="buyCity(${i})">Купити</button><br>`;
-  });
+let cityHTML="";
+if(state.cities.length===0) cityHTML="Немає міст<br><br>";
+state.cities.forEach((c,i)=>{
+  let income=c.income[c.level-1];
+  let stars="🌟".repeat(c.level); // показує рівень міста через 🌟
+  cityHTML+=`<b>${c.name}</b> ${stars} Рівень: ${c.level} 💰 Дохід: ${formatMoney(income)} / хід
+    ${c.level<c.income.length?'<button onclick="upgradeCity('+i+')">Покращити (50к)</button>':''}<br>`;
+});
+ // Кнопки покупки нових міст
+cityHTML+="<br><b>Купити нове місто:</b><br>";
+allCities.forEach((c,i)=>{
+  cityHTML+=`${c.name} 💰${formatMoney(c.price)} <button onclick="buyCity(${i})">Купити</button><br>`;
+});
   document.getElementById("cityBlock").innerHTML=cityHTML;
 
   // --- Магазин юнітів ---
