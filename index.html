@@ -94,7 +94,7 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ---------- Початкові дані (твої оригінальні юніти) ----------
+// ---------- Початкові дані ----------
 const defaultUnits = [
     {name:"Вівцевоз", price:60000, atk:7, def:34, speed:12},
     {name:"Каракалокрад", price:85000, atk:9, def:38, speed:13},
@@ -112,12 +112,13 @@ const allCities = [
     {name:"🏛 Столиця", price:150000, income:[20000,40000,60000]}
 ];
 
+// Ініціалізуємо базовий стан відразу
 let state = { balance: 500000, cities: [], army: {} };
 let units = [];
 
-// ---------- Завантаження та Синхронізація ----------
+// ---------- Завантаження ----------
 function loadGame() {
-    // Слухаємо зміни списку юнітів
+    // 1. Спершу завантажуємо типи юнітів
     db.ref("game/units").on("value", snap => {
         if (snap.exists()) {
             units = snap.val();
@@ -125,19 +126,35 @@ function loadGame() {
             units = JSON.parse(JSON.stringify(defaultUnits));
             db.ref("game/units").set(units);
         }
+        checkArmyKeys();
         render();
     });
 
-    // Слухаємо зміни стану (баланс, армія)
+    // 2. Потім завантажуємо стан гравця
     db.ref("game/state").on("value", snap => {
         if (snap.exists()) {
-            state = snap.val();
-            // Перевірка, щоб нові юніти мали запис в армії
-            units.forEach(u => { if(state.army[u.name] === undefined) state.army[u.name] = 0; });
+            let data = snap.val();
+            // ГАРАНТІЯ: якщо в базі немає міст або армії, створюємо їх, щоб не було undefined
+            state = {
+                balance: data.balance || 0,
+                cities: data.cities || [],
+                army: data.army || {}
+            };
         } else {
-            saveGame(); // Створюємо початковий стан
+            saveGame(); 
         }
+        checkArmyKeys();
         render();
+    });
+}
+
+// Функція-запобіжник: перевіряє, щоб для кожного юніта був ключ в армії
+function checkArmyKeys() {
+    if (!state.army) state.army = {};
+    units.forEach(u => {
+        if (state.army[u.name] === undefined) {
+            state.army[u.name] = 0;
+        }
     });
 }
 
@@ -148,7 +165,7 @@ function formatMoney(n){ return (n/1000)+"к"; }
 
 // ---------- Інтерфейс ----------
 function render() {
-    if (!state || units.length === 0) return;
+    if (!state || !units || units.length === 0) return;
 
     document.getElementById("balance").innerText = formatMoney(state.balance);
 
@@ -197,7 +214,7 @@ function render() {
     document.getElementById("adminUnits").innerHTML = adminHTML;
 }
 
-// ---------- Логіка Гри ----------
+// ---------- Логіка ----------
 function buy(name){
     let u = units.find(x => x.name === name);
     if(state.balance >= u.price){
@@ -237,15 +254,12 @@ function endTurn(){
     let income = 0;
     state.cities.forEach(c => income += c.income[c.level-1]);
     state.balance += income;
-    
     let log = `💰 Дохід: +${formatMoney(income)}`;
     if(Math.random() < 0.2) { state.balance += 20000; log += " | 🎁 Знайдено скарб +20к"; }
-    
     document.getElementById("eventLog").innerText = log;
     saveGame();
 }
 
-// ---------- Адмін функції ----------
 function adminChangeBalance(dir){
     let val = parseInt(document.getElementById("adminBalanceInput").value) || 0;
     state.balance += val * dir;
@@ -253,6 +267,7 @@ function adminChangeBalance(dir){
 }
 
 function adminAddUnit(name, delta){
+    if(!state.army) state.army = {};
     state.army[name] = (state.army[name] || 0) + delta;
     if(state.army[name] < 0) state.army[name] = 0;
     saveGame();
@@ -263,28 +278,40 @@ function showNewUnitForm(){ document.getElementById("newUnitForm").style.display
 function addNewUnit(){
     let name = document.getElementById("newUnitName").value;
     let price = parseInt(document.getElementById("newUnitPrice").value) || 0;
+    
     if(name && price > 0){
+        // Додаємо в список товарів
         units.push({
             name, price, 
             atk: parseInt(document.getElementById("newUnitAtk").value) || 0,
             def: parseInt(document.getElementById("newUnitDef").value) || 0,
             speed: parseInt(document.getElementById("newUnitSpeed").value) || 0
         });
+        
+        // Гарантуємо наявність об'єкта army і ставимо 0
+        if (!state.army) state.army = {};
         state.army[name] = 0;
-        saveUnits();
-        saveGame();
+        
+        saveUnits(); // Зберегти магазин
+        saveGame();  // Зберегти стан (нову армію)
+        
         document.getElementById("newUnitForm").style.display='none';
+        // Очистити поля
+        document.getElementById("newUnitName").value = "";
+        document.getElementById("newUnitPrice").value = "";
+    } else {
+        alert("Введіть назву та ціну!");
     }
 }
 
 function editUnitPrompt(i){
     let u = units[i];
-    let n = prompt("Назва:", u.name);
+    let n = prompt("Нова назва:", u.name);
     if(n) {
         let oldName = u.name;
         u.name = n;
         u.price = parseInt(prompt("Ціна:", u.price)) || u.price;
-        // Переносимо кількість юнітів на нову назву
+        if (!state.army) state.army = {};
         state.army[n] = state.army[oldName] || 0;
         if(n !== oldName) delete state.army[oldName];
         saveUnits();
@@ -294,8 +321,9 @@ function editUnitPrompt(i){
 
 function deleteUnit(i){
     if(confirm("Видалити юніта?")){
-        delete state.army[units[i].name];
+        let name = units[i].name;
         units.splice(i, 1);
+        if(state.army) delete state.army[name];
         saveUnits();
         saveGame();
     }
