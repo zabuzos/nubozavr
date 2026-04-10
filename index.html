@@ -330,11 +330,22 @@ function deleteUnit(i){
 }
 
 function resetGame(){
-    if(confirm("Скинути ВСЕ?")){
-        state = { balance: 500000, cities: [], army: {} };
-        units = JSON.parse(JSON.stringify(defaultUnits));
-        saveUnits();
+    if(confirm("Ви впевнені? Це обнулить баланс, міста та кількість військ, але збереже створені типи юнітів у магазині.")){
+        // 1. Скидаємо баланс та міста
+        state.balance = 500000;
+        state.cities = [];
+        
+        // 2. Обнуляємо кількість кожного юніта, який зараз є в базі
+        state.army = {};
+        units.forEach(u => {
+            state.army[u.name] = 0;
+        });
+
+        // 3. Зберігаємо лише стан гри. 
+        // Функцію saveUnits() НЕ викликаємо, щоб не затерти список товарів
         saveGame();
+        
+        alert("Гру скинуто! Магазин збережено.");
     }
 }
 
