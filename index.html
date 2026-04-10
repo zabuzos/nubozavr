@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Міні-гра – Синхронізація (Biluga Style)</title>
+<title>Міні-гра – Повний Адмін-контроль</title>
 <style>
     body { font-family: Arial, sans-serif; padding:10px; background:#f5f5f5; }
     .card { background:white; padding:15px; margin-bottom:10px; border-radius:10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -15,8 +15,6 @@
     .tabs button { background:#ddd; color:black; margin-right:5px; padding: 10px; }
     .activeTab { background:#4CAF50 !important; color:white !important; }
     input[type=number], input[type=text]{ width:100px; padding: 4px; }
-    
-    /* Адмін-панель */
     .adminUnit { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 1px solid #ccc; }
     .adminUnit button.edit { background:#2196F3; }
     .adminUnit button.delete { background:#9C27B0; }
@@ -34,22 +32,18 @@
 
 <div id="gameTab">
     <div class="card top">Баланс: <span id="balance">0</span> 💰</div>
-
     <div class="card">
         <h3>🏙 Міста</h3>
         <div id="cityBlock"></div>
     </div>
-
     <div class="card">
         <h3>🛒 Магазин юнітів</h3>
         <div id="shop"></div>
     </div>
-
     <div class="card">
         <h3>🎒 Твоя армія</h3>
         <div id="army"></div>
     </div>
-
     <div class="card">
         <button onclick="endTurn()" style="width:100%; height: 40px;">Закінчити хід</button>
         <div id="eventLog" style="margin-top:10px; color: #555;"></div>
@@ -64,12 +58,10 @@
         <button onclick="adminChangeBalance(1)">+</button>
         <button class="minus" onclick="adminChangeBalance(-1)">-</button>
         <br><br>
-
         <h4>Управління списком юнітів:</h4>
         <div id="adminUnits"></div>
         <br>
         <button onclick="showNewUnitForm()">➕ Додати новий тип юніта</button>
-
         <div id="newUnitForm" style="display:none; margin-top:10px; padding: 10px; border: 1px solid #ccc;">
             Назва: <input type="text" id="newUnitName"><br>
             💰 Ціна: <input type="number" id="newUnitPrice"><br>
@@ -84,7 +76,6 @@
 </div>
 
 <script>
-// ---------- Firebase ----------
 const firebaseConfig = {
     apiKey: "AIzaSyATVi62zhasVApJzdq-qw_nE4_sms_S6l8",
     authDomain: "nubozavr-cd903.firebaseapp.com",
@@ -94,7 +85,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-// ---------- Початкові дані ----------
 const defaultUnits = [
     {name:"Вівцевоз", price:60000, atk:7, def:34, speed:12},
     {name:"Каракалокрад", price:85000, atk:9, def:38, speed:13},
@@ -112,85 +102,51 @@ const allCities = [
     {name:"🏛 Столиця", price:150000, income:[20000,40000,60000]}
 ];
 
-// Ініціалізуємо базовий стан відразу
 let state = { balance: 500000, cities: [], army: {} };
 let units = [];
 
-// ---------- Завантаження ----------
 function loadGame() {
-    // 1. Спершу завантажуємо типи юнітів
     db.ref("game/units").on("value", snap => {
-        if (snap.exists()) {
-            units = snap.val();
-        } else {
-            units = JSON.parse(JSON.stringify(defaultUnits));
-            db.ref("game/units").set(units);
-        }
-        checkArmyKeys();
-        render();
+        if (snap.exists()) { units = snap.val(); } 
+        else { units = JSON.parse(JSON.stringify(defaultUnits)); db.ref("game/units").set(units); }
+        checkArmyKeys(); render();
     });
-
-    // 2. Потім завантажуємо стан гравця
     db.ref("game/state").on("value", snap => {
         if (snap.exists()) {
             let data = snap.val();
-            // ГАРАНТІЯ: якщо в базі немає міст або армії, створюємо їх, щоб не було undefined
-            state = {
-                balance: data.balance || 0,
-                cities: data.cities || [],
-                army: data.army || {}
-            };
-        } else {
-            saveGame(); 
-        }
-        checkArmyKeys();
-        render();
+            state = { balance: data.balance || 0, cities: data.cities || [], army: data.army || {} };
+        } else { saveGame(); }
+        checkArmyKeys(); render();
     });
 }
 
-// Функція-запобіжник: перевіряє, щоб для кожного юніта був ключ в армії
 function checkArmyKeys() {
     if (!state.army) state.army = {};
-    units.forEach(u => {
-        if (state.army[u.name] === undefined) {
-            state.army[u.name] = 0;
-        }
-    });
+    units.forEach(u => { if (state.army[u.name] === undefined) state.army[u.name] = 0; });
 }
 
 function saveGame() { db.ref("game/state").set(state); }
 function saveUnits() { db.ref("game/units").set(units); }
-
 function formatMoney(n){ return (n/1000)+"к"; }
 
-// ---------- Інтерфейс ----------
 function render() {
     if (!state || !units || units.length === 0) return;
-
     document.getElementById("balance").innerText = formatMoney(state.balance);
-
-    // Міста
     let cityHTML = "";
     state.cities.forEach((c, i) => {
         let income = c.income[c.level-1];
-        cityHTML += `<b>${c.name}</b> ${"🌟".repeat(c.level)} 💰 ${formatMoney(income)}/хід 
-        ${c.level < 3 ? `<button onclick="upgradeCity(${i})">Up (50к)</button>` : ''}<br>`;
+        cityHTML += `<b>${c.name}</b> ${"🌟".repeat(c.level)} 💰 ${formatMoney(income)} 
+        ${c.level < 3 ? `<button onclick="upgradeCity(${i})">Up</button>` : ''}<br>`;
     });
-    cityHTML += "<br><b>Купити місто:</b><br>";
-    allCities.forEach((c, i) => {
-        cityHTML += `<button onclick="buyCity(${i})">${c.name} (${formatMoney(c.price)})</button> `;
-    });
-    document.getElementById("cityBlock").innerHTML = cityHTML;
+    document.getElementById("cityBlock").innerHTML = cityHTML || "Немає міст";
 
-    // Магазин
     let shopHTML = "";
     units.forEach(u => {
-        shopHTML += `<div class="unit"><b>${u.name}</b> [⚔️${u.atk} 🛡${u.def}] 💰${formatMoney(u.price)} 
+        shopHTML += `<div class="unit"><b>${u.name}</b> [⚔️${u.atk} 🛡${u.def} 🏃‍♂️${u.speed}] 💰${formatMoney(u.price)} 
         <button onclick="buy('${u.name}')">Купити</button></div>`;
     });
     document.getElementById("shop").innerHTML = shopHTML;
 
-    // Армія
     let armyHTML = "";
     units.forEach(u => {
         let count = state.army[u.name] || 0;
@@ -198,11 +154,10 @@ function render() {
     });
     document.getElementById("army").innerHTML = armyHTML || "Армія порожня";
 
-    // Адмін-панель
     let adminHTML = "";
     units.forEach((u, i) => {
         adminHTML += `<div class="adminUnit">
-            <span>${u.name} (${state.army[u.name] || 0})</span>
+            <span><b>${u.name}</b> (⚔️${u.atk} 🛡${u.def})</span>
             <div>
                 <button onclick="adminAddUnit('${u.name}',1)">+</button>
                 <button class="minus" onclick="adminAddUnit('${u.name}',-1)">-</button>
@@ -214,151 +169,108 @@ function render() {
     document.getElementById("adminUnits").innerHTML = adminHTML;
 }
 
-// ---------- Логіка ----------
 function buy(name){
     let u = units.find(x => x.name === name);
-    if(state.balance >= u.price){
-        state.balance -= u.price;
-        state.army[name] = (state.army[name] || 0) + 1;
-        saveGame();
-    } else alert("Мало грошей!");
+    if(state.balance >= u.price){ state.balance -= u.price; state.army[name]++; saveGame(); }
 }
-
 function sell(name){
     let u = units.find(x => x.name === name);
-    if(state.army[name] > 0){
-        state.army[name]--;
-        state.balance += u.price * 0.5;
-        saveGame();
-    }
+    if(state.army[name] > 0){ state.army[name]--; state.balance += u.price * 0.5; saveGame(); }
 }
-
 function buyCity(i){
     let c = allCities[i];
-    if(state.balance >= c.price){
-        state.balance -= c.price;
-        state.cities.push({name: c.name, level: 1, income: c.income});
-        saveGame();
-    }
+    if(state.balance >= c.price){ state.balance -= c.price; state.cities.push({name: c.name, level: 1, income: c.income}); saveGame(); }
 }
-
 function upgradeCity(i){
-    if(state.balance >= 50000){
-        state.balance -= 50000;
-        state.cities[i].level++;
-        saveGame();
-    }
+    if(state.balance >= 50000){ state.balance -= 50000; state.cities[i].level++; saveGame(); }
 }
-
 function endTurn(){
-    let income = 0;
-    state.cities.forEach(c => income += c.income[c.level-1]);
+    let income = 0; state.cities.forEach(c => income += c.income[c.level-1]);
     state.balance += income;
-    let log = `💰 Дохід: +${formatMoney(income)}`;
-    if(Math.random() < 0.2) { state.balance += 20000; log += " | 🎁 Знайдено скарб +20к"; }
-    document.getElementById("eventLog").innerText = log;
     saveGame();
 }
 
+// --- АДМІН ФУНКЦІЇ ---
 function adminChangeBalance(dir){
     let val = parseInt(document.getElementById("adminBalanceInput").value) || 0;
-    state.balance += val * dir;
-    saveGame();
+    state.balance += val * dir; saveGame();
 }
-
 function adminAddUnit(name, delta){
-    if(!state.army) state.army = {};
     state.army[name] = (state.army[name] || 0) + delta;
     if(state.army[name] < 0) state.army[name] = 0;
     saveGame();
 }
-
 function showNewUnitForm(){ document.getElementById("newUnitForm").style.display='block'; }
-
 function addNewUnit(){
     let name = document.getElementById("newUnitName").value;
     let price = parseInt(document.getElementById("newUnitPrice").value) || 0;
-    
     if(name && price > 0){
-        // Додаємо в список товарів
         units.push({
             name, price, 
             atk: parseInt(document.getElementById("newUnitAtk").value) || 0,
             def: parseInt(document.getElementById("newUnitDef").value) || 0,
             speed: parseInt(document.getElementById("newUnitSpeed").value) || 0
         });
-        
-        // Гарантуємо наявність об'єкта army і ставимо 0
-        if (!state.army) state.army = {};
-        state.army[name] = 0;
-        
-        saveUnits(); // Зберегти магазин
-        saveGame();  // Зберегти стан (нову армію)
-        
+        state.army[name] = 0; saveUnits(); saveGame();
         document.getElementById("newUnitForm").style.display='none';
-        // Очистити поля
-        document.getElementById("newUnitName").value = "";
-        document.getElementById("newUnitPrice").value = "";
-    } else {
-        alert("Введіть назву та ціну!");
     }
 }
 
+// ОСЬ ТУТ ТЕПЕР ПОВНЕ РЕДАГУВАННЯ
 function editUnitPrompt(i){
     let u = units[i];
-    let n = prompt("Нова назва:", u.name);
-    if(n) {
-        let oldName = u.name;
-        u.name = n;
-        u.price = parseInt(prompt("Ціна:", u.price)) || u.price;
-        if (!state.army) state.army = {};
+    let oldName = u.name;
+
+    let n = prompt("Назва юніта:", u.name);
+    if(n === null) return; // Скасовано
+
+    let p = prompt("💰 Ціна:", u.price);
+    let a = prompt("⚔️ Атака (АТК):", u.atk);
+    let d = prompt("🛡 Захист (ОЗ):", u.def);
+    let s = prompt("🏃‍♂️ Швидкість:", u.speed);
+
+    // Оновлюємо дані, якщо введено числа
+    u.name = n || u.name;
+    u.price = parseInt(p) || u.price;
+    u.atk = parseInt(a) || u.atk;
+    u.def = parseInt(d) || u.def;
+    u.speed = parseInt(s) || u.speed;
+
+    // Якщо назва змінилася — переносимо армію
+    if(n !== oldName) {
         state.army[n] = state.army[oldName] || 0;
-        if(n !== oldName) delete state.army[oldName];
-        saveUnits();
+        delete state.army[oldName];
         saveGame();
     }
+    
+    saveUnits();
+    alert("Дані юніта оновлено!");
 }
 
 function deleteUnit(i){
     if(confirm("Видалити юніта?")){
-        let name = units[i].name;
+        delete state.army[units[i].name];
         units.splice(i, 1);
-        if(state.army) delete state.army[name];
-        saveUnits();
-        saveGame();
+        saveUnits(); saveGame();
     }
 }
 
 function resetGame(){
-    if(confirm("Ви впевнені? Це обнулить баланс, міста та кількість військ, але збереже створені типи юнітів у магазині.")){
-        // 1. Скидаємо баланс та міста
+    if(confirm("Скинути прогрес гравця? Магазин юнітів залишиться.")){
         state.balance = 500000;
         state.cities = [];
-        
-        // 2. Обнуляємо кількість кожного юніта, який зараз є в базі
-        state.army = {};
-        units.forEach(u => {
-            state.army[u.name] = 0;
-        });
-
-        // 3. Зберігаємо лише стан гри. 
-        // Функцію saveUnits() НЕ викликаємо, щоб не затерти список товарів
+        Object.keys(state.army).forEach(k => state.army[k] = 0);
         saveGame();
-        
-        alert("Гру скинуто! Магазин збережено.");
     }
 }
 
 function switchTab(tab){
     document.getElementById("gameTab").style.display = tab === "game" ? "block" : "none";
     document.getElementById("adminTab").style.display = tab === "admin" ? "block" : "none";
-    document.getElementById("tabGame").classList.toggle("activeTab", tab === "game");
-    document.getElementById("tabAdmin").classList.toggle("activeTab", tab === "admin");
 }
 
 loadGame();
 switchTab("game");
 </script>
-
 </body>
 </html>
